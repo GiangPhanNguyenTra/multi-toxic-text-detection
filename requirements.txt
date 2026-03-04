@@ -1,0 +1,8 @@
+torch --index-url https://download.pytorch.org/whl/cu124
+transformers
+accelerate
+scikit-learn
+pandas
+numpy
+flask
+protobuf

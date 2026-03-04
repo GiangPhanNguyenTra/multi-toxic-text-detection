@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Toxic Comment Detector (Transformer)</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f6f9;
+        display: flex;
+        justify-content: center;
+        padding-top: 50px;
+      }
+      .container {
+        background: white;
+        width: 600px;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        text-align: center;
+        color: #2c3e50;
+      }
+      textarea {
+        width: 100%;
+        height: 100px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 16px;
+        box-sizing: border-box;
+        resize: vertical;
+      }
+      button {
+        width: 100%;
+        padding: 12px;
+        background: #3498db;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-top: 10px;
+        transition: background 0.3s;
+      }
+      button:hover {
+        background: #2980b9;
+      }
+      .result-box {
+        margin-top: 20px;
+        display: none;
+      }
+      .verdict {
+        padding: 15px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 1.2em;
+        border-radius: 6px;
+        margin-bottom: 15px;
+      }
+      .clean {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+      .toxic {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+      .bar-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .label-name {
+        width: 120px;
+        font-weight: 600;
+        color: #555;
+      }
+      .progress-bg {
+        flex-grow: 1;
+        background: #eee;
+        height: 10px;
+        border-radius: 5px;
+        overflow: hidden;
+        margin: 0 10px;
+      }
+      .progress-fill {
+        height: 100%;
+        background: #e74c3c;
+        width: 0%;
+        transition: width 0.5s ease;
+      }
+      .score-val {
+        width: 50px;
+        text-align: right;
+        font-size: 0.9em;
+        color: #666;
+      }
+      .loading {
+        text-align: center;
+        display: none;
+        color: #666;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🛡️ AI Toxic Detector</h1>
+      <p style="text-align: center; color: #7f8c8d">Fine-tuned Roberta Model</p>
+
+      <textarea
+        id="inputText"
+        placeholder="Type a comment to analyze... (e.g., 'You are amazing' or 'You are stupid')"
+      ></textarea>
+      <button onclick="analyzeText()">Analyze Toxicity</button>
+
+      <div class="loading" id="loading">
+        ⏳ Analyzing with Transformer Model...
+      </div>
+
+      <div class="result-box" id="resultBox">
+        <div id="verdictBox" class="verdict"></div>
+        <div id="barsContainer"></div>
+        <p style="font-size: 0.8em; color: #999; margin-top: 10px">
+          Processed Text: <span id="processedText"></span>
+        </p>
+      </div>
+    </div>
+
+    <script>
+      async function analyzeText() {
+        const text = document.getElementById("inputText").value;
+        if (!text.trim()) return alert("Please enter some text!");
+
+        document.getElementById("loading").style.display = "block";
+        document.getElementById("resultBox").style.display = "none";
+
+        try {
+          const response = await fetch("/predict", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: text }),
+          });
+          const data = await response.json();
+
+          // Render Results
+          const verdictBox = document.getElementById("verdictBox");
+          if (data.is_toxic) {
+            verdictBox.textContent = "⚠️ TOXIC CONTENT DETECTED";
+            verdictBox.className = "verdict toxic";
+          } else {
+            verdictBox.textContent = "✅ CLEAN CONTENT";
+            verdictBox.className = "verdict clean";
+          }
+
+          document.getElementById("processedText").textContent =
+            data.cleaned_text;
+
+          // Render Bars
+          let barsHtml = "";
+          for (const [label, score] of Object.entries(data.predictions)) {
+            const pct = (score * 100).toFixed(1);
+            // Làm mờ nếu điểm thấp
+            const opacity = score > 0.5 ? 1 : 0.3;
+
+            barsHtml += `
+                    <div class="bar-row" style="opacity: ${
+                      score > 0.1 ? 1 : 0.6
+                    }">
+                        <div class="label-name">${label}</div>
+                        <div class="progress-bg">
+                            <div class="progress-fill" style="width: ${pct}%; opacity: ${opacity}"></div>
+                        </div>
+                        <div class="score-val">${score.toFixed(4)}</div>
+                    </div>
+                `;
+          }
+          document.getElementById("barsContainer").innerHTML = barsHtml;
+          document.getElementById("resultBox").style.display = "block";
+        } catch (error) {
+          alert("Error calling API");
+          console.error(error);
+        } finally {
+          document.getElementById("loading").style.display = "none";
+        }
+      }
+    </script>
+  </body>
+</html>
