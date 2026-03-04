@@ -163,8 +163,4 @@ See `requirements.txt` for a complete list.
 
 ## Authors
 
-[Add authors here]
-
-## Contact
-
-[Add contact information here]
+Phan Nguyen Tra Giang
